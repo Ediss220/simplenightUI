@@ -9,8 +9,8 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:ui": "playwright test --ui",
-    "report": "playwright show-report",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean": "node -e \"const fs=require('fs');for(const d of ['test-results','playwright-report'])fs.rmSync(d,{recursive:true,force:true})\""
   },
   "devDependencies": {
     "@playwright/test": "^1.54.0",

@@ -1,5 +1,7 @@
 import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
+import { timing } from '../config/timing';
+import { LOCALE } from '../config/locale';
 import { DatePickerDialog } from './components/DatePickerDialog';
 import {
   GuestSelectorDialog,
@@ -35,17 +37,17 @@ export class HotelsHomePage extends BasePage {
     await dialogInput.fill(query);
 
     const option = this.dialog.getByRole('option').filter({ hasText: optionText }).first();
-    await expect(option).toBeVisible({ timeout: 15_000 });
+    await expect(option).toBeVisible({ timeout: timing.searchWidget });
     await option.click();
     await expect(this.dialog).toBeHidden();
-    await expect(this.destinationField).toHaveValue(query, { timeout: 15_000 });
+    await expect(this.destinationField).toHaveValue(query, { timeout: timing.searchWidget });
   }
 
   async setStayDates(checkIn: Date, checkOut: Date): Promise<void> {
     await this.datesField.click();
     await this.datePicker.selectRange(checkIn, checkOut);
     const short = (date: Date) =>
-      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      date.toLocaleDateString(LOCALE, { month: 'short', day: 'numeric' });
     await expect(this.datesField).toHaveValue(`${short(checkIn)} - ${short(checkOut)}`);
   }
 

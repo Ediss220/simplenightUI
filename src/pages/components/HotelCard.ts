@@ -1,4 +1,13 @@
 import { expect, type Locator } from '@playwright/test';
+import { timing } from '../../config/timing';
+
+/**
+ * Guest-score band vocabulary. Order matters — longest first, so the regex
+ * prefers "Very Good" over its substring "Good". Extend when the site adds a
+ * band (e.g. "Exceptional").
+ */
+const SCORE_BANDS = ['Excellent', 'Very Good', 'Good', 'Average'] as const;
+const SCORE_WITH_BAND = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${SCORE_BANDS.join('|')})`);
 
 export interface HotelCardDetails {
   name: string;
@@ -20,7 +29,7 @@ export class HotelCard {
   constructor(public readonly root: Locator) {}
 
   async expectVisible(): Promise<void> {
-    await expect(this.root.first()).toBeVisible({ timeout: 20_000 });
+    await expect(this.root.first()).toBeVisible({ timeout: timing.hotelCard });
   }
 
   async details(): Promise<HotelCardDetails> {
@@ -29,7 +38,7 @@ export class HotelCard {
       const match = text.match(pattern);
       return match ? Number((match[1] ?? '').replace(/,/g, '')) : NaN;
     };
-    const scoreMatch = text.match(/(\d+(?:\.\d+)?)\s*(Excellent|Very Good|Good|Average)/);
+    const scoreMatch = text.match(SCORE_WITH_BAND);
     const reviewMatch = text.match(/\((\d[\d,]*)\)/);
     const name = text
       .split('\n')

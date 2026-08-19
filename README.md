@@ -27,7 +27,9 @@ page object plus data — not new orchestration logic.
 ├── .env.example                # environment variable template
 ├── src/
 │   ├── config/
-│   │   └── env.ts              # execution params (env presets, base URL)
+│   │   ├── env.ts              # execution params (env presets, base URL)
+│   │   ├── locale.ts           # pinned locale shared by config and pages
+│   │   └── timing.ts           # per-wait timeout overrides (single source)
 │   ├── data/
 │   │   └── booking.data.ts     # all business inputs: location, dates, guests, filters
 │   ├── fixtures/
@@ -48,13 +50,16 @@ page object plus data — not new orchestration logic.
     ├── homepage.spec.ts        # navbar exposes every booking category
     └── hotel-booking.spec.ts   # the end-to-end journey above (steps 1–7)
 ```
+On failure Playwright keeps a trace, video and screenshots per test under
+`test-results/`; inspect one with `npx playwright show-trace <trace.zip>`. Both
+artifact folders are removed by `npm run clean`.
 
 ## Prerequisites
 
 | Requirement              | Check              | Notes                                          |
 | ------------------------ | ------------------ | ---------------------------------------------- |
 | **Node.js ≥ 20** (LTS)   | `node --version`   | npm is bundled with Node                        |
-| Playwright browser cache | `npx playwright install chromium` | one-time download, per machine |
+| Playwright browser cache | `npx playwright install` | chromium + firefox + webkit, one-time download |
 
 Node.js must be installed **system-wide** before npm will work. Pick whichever
 matches your platform:
@@ -76,13 +81,14 @@ Or use the LTS installer from <https://nodejs.org/en/download>.
 
 ```bash
 npm install                    # project dependencies (package-lock pinned)
-npx playwright install chromium # browser binaries into the local Playwright cache
+npx playwright install          # browser binaries (chromium, firefox, webkit)
 ```
 
-`npx playwright install chromium` downloads browser binaries into the local
-Playwright cache (not the repo). On Linux, CI, or headless servers also run
-`npx playwright install-deps chromium` for OS libraries. No accounts or logins
-are required — the staging site is public for search.
+`npx playwright install` downloads all three engine binaries (chromium,
+firefox, webkit) into the local Playwright cache (not the repo). On Linux,
+CI, or headless servers also run `npx playwright install-deps` for OS
+libraries. No accounts or logins are required — the staging site is public
+for search.
 
 ## Troubleshooting setup
 
@@ -91,8 +97,8 @@ are required — the staging site is public for search.
   **new** terminal: running shells do not pick up `PATH` changes.
 - **`node`/`npm` installed but still not recognized** — the terminal was opened
   before installation; restart it (or VS Code) so the refreshed `PATH` loads.
-- **`Executable doesn't exist ... chromium`** — browser binaries missing for
-  this machine's user; re-run `npx playwright install chromium`.
+- **`Executable doesn't exist ... <browser>`** — browser binaries missing for
+  this machine's user; re-run `npx playwright install`.
 - **Windows: `npx playwright install-deps` is not needed** — Windows ships the
   required system libraries; the step applies to Linux only.
 
@@ -127,6 +133,7 @@ npm run test:ui     # Playwright UI mode (time-travel debugging)
 npm run test:debug  # step-through debugger
 npm run report      # open the HTML report from the last run
 npm run typecheck   # tsc --noEmit over src, tests and config
+npm run clean      # delete run artifacts: test-results/ and playwright-report/
 ```
 
 Useful narrower invocations:
@@ -134,7 +141,8 @@ Useful narrower invocations:
 ```bash
 npx playwright test tests/hotel-booking.spec.ts        # only the e2e journey
 npx playwright test --grep @e2e                        # by tag
-npx playwright test --project=chromium --workers=1     # explicit project/worker count
+npx playwright test --project=chromium --workers=1     # one browser only
+npx playwright test --project=firefox                  # or firefox / webkit
 ```
 
 On failure Playwright keeps a trace, video and screenshots per test under
@@ -143,7 +151,7 @@ On failure Playwright keeps a trace, video and screenshots per test under
 ## CI
 
 `.github/workflows/ci.yml` runs the whole suite on every push and pull request
-(Ubuntu, Chromium, `npm ci`, typecheck first, HTML report uploaded on failure).
+(Ubuntu, chromium + firefox + webkit, `npm ci`, typecheck first, HTML report uploaded on failure).
 
 ## Design notes
 
@@ -156,6 +164,9 @@ On failure Playwright keeps a trace, video and screenshots per test under
   consecutive identical DOM reads (`expect.poll`) — the map equivalent of a
   web-first wait — and paces wheel input with short fixed gaps (input pacing,
   not synchronization).
+- **Single-source constants** — per-wait timeouts live in
+  `src/config/timing.ts` and the pinned locale in `src/config/locale.ts`;
+  page objects import them instead of inlining magic values.
 - **Dual-mode map pins** — the results map renders hotels either as native
   canvas markers or as accessible overlay buttons (aria-labelled with the
   property name). `MapView` collects both, zooms with the mouse wheel anchored
@@ -168,4 +179,3 @@ On failure Playwright keeps a trace, video and screenshots per test under
 - **Deterministic calendar** — Mantine's range picker resolves clicks relative
   to the pre-filled default range; `DatePickerDialog` clicks the check-in twice
   to re-anchor, then the check-out, which collapses any starting state.
-

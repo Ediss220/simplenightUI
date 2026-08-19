@@ -38,10 +38,12 @@ export const hotelBooking = {
 
   filters: {
     priceMin: 100,
-    /** The slider maximum renders as "1000+" — an open-ended cap, so no upper bound is asserted. */
-    priceMaxOpenEndedLabel: '1000+',
-    guestScoreLabel: 'Very Good (7+)',
-    guestScoreUrlToken: 'ratings=7', // URL reflects the applied filter, used as a sync point
-    minGuestScore: 7,
+    /** Slider maximum — renders as the open-ended "1000+" cap, so no upper bound is asserted. */
+    priceMax: 1000,
+    guestScore: {
+      band: 'Very Good',
+      minimum: 7,
+      urlToken: 'ratings=7', // URL reflects the applied filter, used as a sync point
+    },
   },
 } as const;

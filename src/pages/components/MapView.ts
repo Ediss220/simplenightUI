@@ -1,5 +1,20 @@
 import { expect, type Page } from '@playwright/test';
+import { timing } from '../../config/timing';
 
+/** Marker-settle and zoom tuning: input pacing and coarse comparison buckets. */
+const SETTLE_POLL_GAP_MS = 400;
+const SETTLE_POLL_INTERVAL_MS = 250;
+/** Comparison bucket size: pins ease into place, exact pixels never settle. */
+const POSITION_BUCKET_PX = 25;
+const MAX_ZOOM_ROUNDS = 12;
+const WHEEL_TICKS = 4;
+const WHEEL_DELTA = 250;
+/** Input pacing between wheel ticks — not synchronization. */
+const WHEEL_TICK_PAUSE_MS = 150;
+/** Overlay pins swallow wheel events aimed straight at them — aim aside. */
+const OVERLAY_AVOID_OFFSET_X = 40;
+/** Wheel targets are clamped this far inside the canvas edge. */
+const CANVAS_EDGE_MARGIN = 20;
 /** A price pin rendered on the results map. */
 export interface MapMarker {
   /**
@@ -35,7 +50,7 @@ export class MapView {
   constructor(private readonly page: Page) {}
 
   async expectVisible(): Promise<void> {
-    await expect(this.page.locator('.gm-style').first()).toBeVisible({ timeout: 30_000 });
+    await expect(this.page.locator('.gm-style').first()).toBeVisible({ timeout: timing.mapVisible });
   }
 
   /** Visible price pins from both rendering modes, deduplicated. */
@@ -114,25 +129,25 @@ export class MapView {
   }
 
   /** Waits until the marker set stops changing between consecutive reads. */
-  async waitForMarkersToSettle(timeout = 15_000): Promise<MapMarker[]> {
+  async waitForMarkersToSettle(timeout = timing.markersSettle): Promise<MapMarker[]> {
     let settled: MapMarker[] = [];
-    // Coarse 25px buckets: pins ease into place, exact pixels never settle.
+    // Coarse buckets: pins ease into place, exact pixels never settle.
     const signature = (markers: MapMarker[]) =>
       markers
-        .map((m) => `${m.label}@${Math.round(m.x / 25)},${Math.round(m.y / 25)}`)
+        .map((m) => `${m.label}@${Math.round(m.x / POSITION_BUCKET_PX)},${Math.round(m.y / POSITION_BUCKET_PX)}`)
         .sort()
         .join('|');
     await expect
       .poll(
         async () => {
           const first = await this.readMarkers();
-          await this.page.waitForTimeout(400);
+          await this.page.waitForTimeout(SETTLE_POLL_GAP_MS);
           const second = await this.readMarkers();
           const stable = signature(first) === signature(second);
           if (stable) settled = second;
           return stable;
         },
-        { timeout, intervals: [250] },
+        { timeout, intervals: [SETTLE_POLL_INTERVAL_MS] },
       )
       .toBe(true);
     return settled;
@@ -143,7 +158,7 @@ export class MapView {
    * marker is unambiguous to select. Cluster markers are also collected so the
    * zoom can start before any pin has separated.
    */
-  async zoomToSingleHotelMarker(maxRounds = 12): Promise<MapMarker> {
+  async zoomToSingleHotelMarker(maxRounds = MAX_ZOOM_ROUNDS): Promise<MapMarker> {
     const map = await this.mapBox();
     for (let round = 0; round < maxRounds; round++) {
       const markers = await this.waitForMarkersToSettle();
@@ -156,11 +171,11 @@ export class MapView {
       // (+x sidesteps them). The point is clamped inside the canvas: beyond
       // its edge the wheel never reaches the map.
       const anchor = pins[0] ?? clusters[0];
-      const offsetX = anchor?.accessible ? 40 : 0;
+      const offsetX = anchor?.accessible ? OVERLAY_AVOID_OFFSET_X : 0;
       const rawX = (anchor?.x ?? map.x + map.width / 2) + offsetX;
       const rawY = anchor?.y ?? map.y + map.height / 2;
-      const x = Math.min(Math.max(rawX, map.x + 20), map.x + map.width - 20);
-      const y = Math.min(Math.max(rawY, map.y + 20), map.y + map.height - 20);
+      const x = Math.min(Math.max(rawX, map.x + CANVAS_EDGE_MARGIN), map.x + map.width - CANVAS_EDGE_MARGIN);
+      const y = Math.min(Math.max(rawY, map.y + CANVAS_EDGE_MARGIN), map.y + map.height - CANVAS_EDGE_MARGIN);
       await this.wheelZoomIn(x, y);
     }
     throw new Error(`Still not down to a single hotel marker after ${maxRounds} zoom rounds`);
@@ -179,11 +194,11 @@ export class MapView {
     if (!box) throw new Error('Map canvas is not visible');
     return box;
   }
-  private async wheelZoomIn(x: number, y: number, ticks = 4): Promise<void> {
+  private async wheelZoomIn(x: number, y: number, ticks = WHEEL_TICKS): Promise<void> {
     await this.page.mouse.move(x, y);
     for (let i = 0; i < ticks; i++) {
-      await this.page.mouse.wheel(0, -250);
-      await this.page.waitForTimeout(150); // input pacing, not synchronization
+      await this.page.mouse.wheel(0, -WHEEL_DELTA);
+      await this.page.waitForTimeout(WHEEL_TICK_PAUSE_MS); // input pacing, not synchronization
     }
   }
 }

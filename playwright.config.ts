@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { envConfig } from './src/config/env';
+import { LOCALE } from './src/config/locale';
 
 export default defineConfig({
   testDir: './tests',
@@ -11,7 +12,7 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: envConfig.baseUrl,
-    locale: 'en-US',
+    locale: LOCALE,
     timezoneId: 'America/New_York',
     viewport: { width: 1920, height: 1080 },
     actionTimeout: 20_000,
@@ -19,5 +20,9 @@ export default defineConfig({
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  ],
 });

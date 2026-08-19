@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { LOCALE } from '../../config/locale';
 import { nightsBetween } from '../../utils/dates';
 
 /**
@@ -62,14 +63,14 @@ export class DatePickerDialog {
     // The year view shows two panels ("2026", "2027") each with its own month grid.
     const yearPanel = yearButton.locator('xpath=../..');
     const monthButton = yearPanel.getByRole('button', {
-      name: target.toLocaleDateString('en-US', { month: 'short' }),
+      name: target.toLocaleDateString(LOCALE, { month: 'short' }),
       exact: true,
     });
     await monthButton.click();
   }
 
   private async pickDay(date: Date): Promise<void> {
-    const label = `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'long' })} ${date.getFullYear()}`;
+    const label = `${date.getDate()} ${date.toLocaleDateString(LOCALE, { month: 'long' })} ${date.getFullYear()}`;
     const day = this.dialog
       .getByRole('button', { name: label, exact: true })
       .filter({ visible: true })

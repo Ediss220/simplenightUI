@@ -31,8 +31,8 @@ test.describe('Simplenight hotel booking', () => {
       await resultsPage.switchToMapView();
 
       // 5. Left-panel filters: price 100–"1000+" (open-ended) and guest score Very Good
-      const priceFloor = await resultsPage.applyPriceRange(filters.priceMin);
-      await resultsPage.applyGuestScore(filters.guestScoreLabel, filters.guestScoreUrlToken);
+      const priceFloor = await resultsPage.applyPriceRange(filters.priceMin, filters.priceMax);
+      await resultsPage.applyGuestScore(filters.guestScore);
 
       // 6. Zoom in until one hotel marker remains, then select it
       const marker = await resultsPage.map.zoomToSingleHotelMarker();
@@ -53,8 +53,8 @@ test.describe('Simplenight hotel booking', () => {
       ).toBeGreaterThanOrEqual(priceFloor);
       expect(
         details.score,
-        `guest score ${details.score} "${details.scoreLabel}" meets ${filters.guestScoreLabel}`,
-      ).toBeGreaterThanOrEqual(filters.minGuestScore);
+        `guest score ${details.score} "${details.scoreLabel}" meets ${filters.guestScore.band} (${filters.guestScore.minimum}+)`,
+      ).toBeGreaterThanOrEqual(filters.guestScore.minimum);
     },
   );
 });
