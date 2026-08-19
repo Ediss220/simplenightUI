@@ -1,0 +1,20 @@
+{
+  "name": "simplenight-ui-automation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright + TypeScript UI automation framework for Simplenight booking flows",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
