@@ -51,19 +51,50 @@ page object plus data — not new orchestration logic.
 
 ## Prerequisites
 
-- **Node.js ≥ 20** (LTS recommended)
-- npm (bundled with Node)
+| Requirement              | Check              | Notes                                          |
+| ------------------------ | ------------------ | ---------------------------------------------- |
+| **Node.js ≥ 20** (LTS)   | `node --version`   | npm is bundled with Node                        |
+| Playwright browser cache | `npx playwright install chromium` | one-time download, per machine |
+
+Node.js must be installed **system-wide** before npm will work. Pick whichever
+matches your platform:
+
+```bash
+# Windows (PowerShell)
+winget install OpenJS.NodeJS.LTS
+
+# macOS (Homebrew)
+brew install node@22
+
+# Debian/Ubuntu
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs
+```
+
+Or use the LTS installer from <https://nodejs.org/en/download>.
 
 ## Install
 
 ```bash
-npm install
-npx playwright install chromium
+npm install                    # project dependencies (package-lock pinned)
+npx playwright install chromium # browser binaries into the local Playwright cache
 ```
 
-`npx playwright install chromium` downloads the browser binaries into the
-local Playwright cache (not the repo). No accounts or logins are required — the
-staging site is public for search.
+`npx playwright install chromium` downloads browser binaries into the local
+Playwright cache (not the repo). On Linux, CI, or headless servers also run
+`npx playwright install-deps chromium` for OS libraries. No accounts or logins
+are required — the staging site is public for search.
+
+## Troubleshooting setup
+
+- **`npm: command not found` / `npm : CommandNotFoundException`** — Node.js is
+  not installed (or not on `PATH`). Install it (see Prerequisites), then open a
+  **new** terminal: running shells do not pick up `PATH` changes.
+- **`node`/`npm` installed but still not recognized** — the terminal was opened
+  before installation; restart it (or VS Code) so the refreshed `PATH` loads.
+- **`Executable doesn't exist ... chromium`** — browser binaries missing for
+  this machine's user; re-run `npx playwright install chromium`.
+- **Windows: `npx playwright install-deps` is not needed** — Windows ships the
+  required system libraries; the step applies to Linux only.
 
 ## Configure
 
@@ -138,15 +169,3 @@ On failure Playwright keeps a trace, video and screenshots per test under
   to the pre-filled default range; `DatePickerDialog` clicks the check-in twice
   to re-anchor, then the check-out, which collapses any starting state.
 
-## AI tooling disclosure
-
-AI assistants (Claude via an agentic harness) were used for scaffolding the
-project structure, analysing staging-DOM snapshots, and iterating on the map
-automation. Quality was kept under control by:
-
-- every change verified by live runs against staging (never trusting the
-  assistant's confidence), with Playwright traces/screenshots driving the fixes;
-- strict TypeScript (`strict`, `noUncheckedIndexedAccess`) and `npm run
-  typecheck` kept clean at all times;
-- the final suite re-run repeatedly end-to-end to shake out flakiness — the
-  committed tests pass deterministically.
