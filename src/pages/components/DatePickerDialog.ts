@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { LOCALE } from '../../config/locale';
+import { timing } from '../../config/timing';
 import { nightsBetween } from '../../utils/dates';
 
 /**
@@ -42,6 +43,21 @@ export class DatePickerDialog {
       await this.pickDay(checkOut);
     }
     await this.done();
+  }
+
+  /**
+   * Selects a single day (dining reservations, one-way pick-ups). Single-date
+   * dialogs may auto-close on pick; Done is only pressed when still open.
+   */
+  async selectSingle(date: Date): Promise<void> {
+    await this.openMonth(date);
+    await this.pickDay(date);
+    const closedByPick = await this.dialog
+      .waitFor({ state: 'hidden', timeout: timing.dialogAutoClose })
+      .then(() => true, () => false);
+    if (!closedByPick) {
+      await this.done();
+    }
   }
 
   private async done(): Promise<void> {

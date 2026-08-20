@@ -1,45 +1,40 @@
 import { expect } from '@playwright/test';
-import { BasePage } from './BasePage';
+import { SearchWidgetPage } from './SearchWidgetPage';
+import type { CategorySearchPage, LocationQuery } from './contracts';
+import type { GuestSelection } from './components/GuestSelectorDialog';
+import { hotelBooking } from '../data/booking.data';
+import { categorySlug } from '../utils/slug';
 import { timing } from '../config/timing';
 import { LOCALE } from '../config/locale';
-import { DatePickerDialog } from './components/DatePickerDialog';
-import {
-  GuestSelectorDialog,
-  type GuestSelection,
-} from './components/GuestSelectorDialog';
+
+/** /home/hotels widget inputs, with concrete resolved dates. */
+export interface HotelsCriteria {
+  location: LocationQuery;
+  checkIn: Date;
+  checkOut: Date;
+  guests: GuestSelection;
+}
 
 /**
- * /home/hotels — the category landing page with the search widget
- * (destination, dates, travelers). The same widget pattern backs the other
- * category pages, so this object is the template for extending to them.
+ * /home/hotels — the reference CategorySearchPage. The granular methods stay
+ * public: the deep e2e journey composes them, fillCriteria composes them for
+ * the generic runner.
  */
-export class HotelsHomePage extends BasePage {
-  private readonly datePicker = new DatePickerDialog(this.page);
-  private readonly guestSelector = new GuestSelectorDialog(this.page);
+export class HotelsHomePage extends SearchWidgetPage implements CategorySearchPage<HotelsCriteria> {
+  readonly slug = categorySlug(hotelBooking.category);
 
-  private readonly destinationField = this.page.getByRole('textbox', { name: 'Going to' });
+  private readonly destinationField = this.field('Going to');
   private readonly datesField = this.page.getByPlaceholder('Select your dates');
   private readonly travelersField = this.page.getByPlaceholder('How many guests?');
-  private readonly searchButton = this.page.getByRole('button', {
-    name: 'Search',
-    exact: true,
-  });
 
   async expectLoaded(): Promise<void> {
-    await expect(this.searchButton).toBeVisible();
+    await this.expectWidgetLoaded();
+    await expect(this.destinationField).toBeVisible();
   }
 
   /** Types the destination query and picks the matching autocomplete option. */
   async searchLocation(query: string, optionText: string): Promise<void> {
-    await this.destinationField.click();
-    const dialogInput = this.dialog.getByRole('textbox');
-    await expect(dialogInput).toBeVisible();
-    await dialogInput.fill(query);
-
-    const option = this.dialog.getByRole('option').filter({ hasText: optionText }).first();
-    await expect(option).toBeVisible({ timeout: timing.searchWidget });
-    await option.click();
-    await expect(this.dialog).toBeHidden();
+    await this.chooseLocation('Going to', { query, option: optionText });
     await expect(this.destinationField).toHaveValue(query, { timeout: timing.searchWidget });
   }
 
@@ -62,9 +57,14 @@ export class HotelsHomePage extends BasePage {
     await expect(this.travelersField).toHaveValue(`1 Room, ${total} Guest${total > 1 ? 's' : ''}`);
   }
 
+  async fillCriteria({ location, checkIn, checkOut, guests }: HotelsCriteria): Promise<void> {
+    await this.searchLocation(location.query, location.option);
+    await this.setStayDates(checkIn, checkOut);
+    await this.setGuests(guests);
+  }
+
   /** Submits the search and waits for the results route. */
-  async search(): Promise<void> {
-    await this.searchButton.click();
-    await this.page.waitForURL(/\/search\/hotels\?/);
+  async submit(): Promise<void> {
+    await this.submitSearch();
   }
 }

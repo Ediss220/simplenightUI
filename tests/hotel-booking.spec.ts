@@ -1,36 +1,23 @@
-import { test, expect } from '../src/fixtures/pages.fixture';
+import { test, expect } from '@playwright/test';
+import { runBookingJourney } from '../src/flows/booking-flow';
+import { hotelsFlow } from '../src/flows/booking.flows';
+import { SearchResultsPage } from '../src/pages/SearchResultsPage';
 import { hotelBooking } from '../src/data/booking.data';
-import { nextUpcoming } from '../src/utils/dates';
-
-const { location, stay, guests, filters } = hotelBooking;
-// "August 1-3" resolves to the next August the calendar still accepts.
-const checkIn = nextUpcoming(stay.month, stay.checkInDay);
-const checkOut = nextUpcoming(stay.month, stay.checkInDay, stay.checkOutDay - stay.checkInDay);
 
 test.describe('Simplenight hotel booking', () => {
   test(
     'search Miami hotels, filter, and validate the hotel selected from the map',
     { tag: '@e2e' },
-    async ({ homePage, hotelsPage, resultsPage }) => {
-      // 1. Staging homepage
-      await homePage.open();
-      await homePage.expectLoaded();
-
-      // 2. Hotels category from the navbar
-      await homePage.selectCategory(hotelBooking.category);
-      await hotelsPage.expectLoaded();
-
-      // 3. Search in category: Miami · check-in → check-out · 1 Adult + 1 Child (8)
-      await hotelsPage.searchLocation(location.query, location.option);
-      await hotelsPage.setStayDates(checkIn, checkOut);
-      await hotelsPage.setGuests(guests);
-      await hotelsPage.search();
-      await resultsPage.expectLoaded();
+    async ({ page }) => {
+      // 1–3: staging homepage → Hotels → Miami · next August 1–3 · 1 Adult + 1 Child (8)
+      await runBookingJourney(page, hotelsFlow);
 
       // 4. Map view for the results
+      const resultsPage = new SearchResultsPage(page);
       await resultsPage.switchToMapView();
 
       // 5. Left-panel filters: price 100–"1000+" (open-ended) and guest score Very Good
+      const { filters } = hotelBooking;
       const priceFloor = await resultsPage.applyPriceRange(filters.priceMin, filters.priceMax);
       await resultsPage.applyGuestScore(filters.guestScore);
 

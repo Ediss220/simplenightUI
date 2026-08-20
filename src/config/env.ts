@@ -1,7 +1,7 @@
 /**
  * Execution parameters, kept out of tests and page objects.
- * Playwright loads `.env` automatically, so a checkout can be pointed at any
- * deployment with `SN_BASE_URL` or a named preset via `SN_ENV`.
+ * Playwright loads `.env` automatically, so any working copy can be pointed
+ * at a deployment with `SN_BASE_URL` or a named preset via `SN_ENV`.
  */
 const PRESETS: Record<string, string> = {
   staging: 'https://wl.stg.simplenight.com',

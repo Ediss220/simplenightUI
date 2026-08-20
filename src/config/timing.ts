@@ -5,6 +5,8 @@
  * Named by purpose, not by value.
  */
 export const timing = {
+  /** Search submit reflected in the /search/<slug> route. */
+  searchSubmit: 60_000,
   /** Autocomplete options appearing, and the field syncing after the dialog closes. */
   searchWidget: 15_000,
   /** Filtered search reflected in the results URL. */
@@ -19,4 +21,12 @@ export const timing = {
   markersSettle: 15_000,
   /** Hotel card popup after a pin click. */
   hotelCard: 20_000,
+  /** A single-date dialog closing itself after a pick. */
+  dialogAutoClose: 3_000,
+  /** The Map/List toggle switch confirmed by charger rows rendering. */
+  viewSwitch: 5_000,
+  /** One retry round of opening a charger detail inside the retry loop. */
+  detailOpen: 10_000,
+  /** A target=_blank footer link opening its popup. */
+  popupRedirect: 10_000,
 } as const;
